@@ -1,29 +1,67 @@
-# opencode-eyes
+# 👁️ opencode-eyes
 
-Un plugin OpenCode qui donne la vision automatiquement à chaque agent, quel que soit le modèle utilisé.
+**Donnez des yeux à chaque agent. Automatiquement.**
 
-Si un agent reçoit une image alors que son modèle actuel ne voit pas, le plugin détecte l'échec et
-rejoue silencieusement le message sur le modèle suivant d'une chaîne de repli triée par coût — le
-modèle avec vision le moins cher d'abord, en montant en gamme uniquement en cas d'échec. Pas de
-changement de modèle manuel, pas d'« agent vision » dédié à appeler.
+[![npm version](https://img.shields.io/npm/v/opencode-eyes)](https://www.npmjs.com/package/opencode-eyes)
+[![license](https://img.shields.io/npm/l/opencode-eyes)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/WindSeries83/opencode-eyes/ci.yml)](https://github.com/WindSeries83/opencode-eyes/actions)
 
 > 🇬🇧 [Read in English](README.md)
 
-## Comment ça marche
+## Le problème
 
-1. À chaque message entrant, le plugin vérifie les pièces jointes à la recherche d'une image (`mime`
-   commençant par `image/`).
-2. S'il en trouve une, il marque la session comme « vision en attente ».
-3. Si OpenCode signale une `session.error` pour cette session, le plugin cherche parmi vos
-   fournisseurs **connectés** tous les modèles capables d'accepter des images, les trie par coût
-   d'entrée, et renvoie le même message via `client.session.prompt()` sur le modèle suivant de la
-   liste.
-4. Il s'arrête quand la chaîne est épuisée ou après `maxAttempts`.
+Vous envoyez à votre agent une capture d'écran, un diagramme, une maquette. Il échoue. Pas parce
+que la tâche est difficile — parce que **votre modèle est aveugle**. Alors vous changez de modèle à
+la main, vous créez un « agent vision » séparé qu'il faut penser à appeler, ou vous espérez que le
+modèle devine à partir du texte alternatif. Chacune de ces options est un impôt sur votre
+productivité, payé à chaque image.
 
-La capacité vision est détectée depuis les données live des fournisseurs (`attachment: true`,
-`modalities.input` contenant `"image"`, ou `capabilities.input.image` en mode hérité). Rien n'est
-codé en dur : la chaîne reflète toujours les fournisseurs réellement configurés et authentifiés
-dans OpenCode.
+## Ce que fait opencode-eyes
+
+Il vit dans OpenCode et surveille. Dès qu'un message avec une image échoue, il **rejoue
+silencieusement le message sur un modèle capable de voir** — le moins cher disponible. Pas de
+changement manuel, pas d'agent dédié à appeler, pas de config à écrire. Vous envoyez la capture.
+Ça marche.
+
+```text
+Vous                OpenCode                    opencode-eyes
+ │  colle une image    │                               │
+ │────────────────────►│  agent (modèle aveugle)      │
+ │                     │─────────────────────────────►│  "image détectée, armé"
+ │                     │◄─────────────────────────────│
+ │                     │  ❌ session.error            │
+ │                     │─────────────────────────────►│  "rejeu sur groq/llama-4-maverick (gratuit)"
+ │                     │  ✅ réponse avec vision      │
+ │◄────────────────────│                               │
+```
+
+## Pourquoi c'est mieux que les alternatives
+
+| Approche | Vous devez | Coût |
+|---|---|---|
+| **opencode-eyes** | Rien. Installez et oubliez. | Modèle avec vision le moins cher d'abord, escalade uniquement en cas d'échec |
+| Changement de modèle manuel | Remarquer l'échec, changer de modèle, renvoyer | Votre temps, à chaque fois |
+| « Agent vision » dédié | Penser à le solliciter, gérer son contexte | Votre temps + dette de contexte |
+| Liste de modèles codée en dur | La maintenir en phase avec vos fournisseurs | Fausse dès le premier fournisseur ajouté |
+
+**Aucun autre plugin OpenCode ne fait ça automatiquement.** Nous avons cherché. Les autres
+demandent de la configuration, ciblent un seul fournisseur, ou meurent avec une liste de modèles
+périmée. opencode-eyes découvre vos modèles en direct — rien de codé en dur, rien à maintenir.
+
+## Des faits, pas des promesses
+
+- **Zéro configuration.** `"plugin": ["opencode-eyes"]` et c'est tout.
+- **Fonctionne avec n'importe quel fournisseur** — OpenAI, Anthropic, Groq, Google, modèles
+  locaux. La chaîne est construite à partir de la liste *live* des fournisseurs de votre instance
+  OpenCode : elle reflète toujours ce que vous avez réellement connecté et authentifié.
+- **Les offres gratuites d'abord.** Ajoutez `preferProviders: ["groq"]` et les modèles gratuits
+  sont essayés avant tout repli payant. Définissez `maxCost` pour ne jamais dépasser un budget.
+  Votre portefeuille décide.
+- **Sûr en cas de panne.** Si un renvoi échoue lui-même (fournisseur down, requête invalide), le
+  plugin arrête de router cette session au lieu de marteler à l'aveugle. Les erreurs concurrentes
+  sont dédupliquées. Ni tempête d'erreurs, ni boucle infinie.
+- **Minuscule.** 18 kB sur disque, une seule dépendance. Rien à maintenir, rien à auditer deux fois.
+- **Testé.** 26 tests unitaires, vérification de types, CI à chaque push. Licence MIT.
 
 ## Installation
 
@@ -35,6 +73,8 @@ dans OpenCode.
   "plugin": ["opencode-eyes"]
 }
 ```
+
+Redémarrez OpenCode. Terminé.
 
 ### En local (test, sans publier)
 
@@ -48,6 +88,15 @@ export { VisionRouterPlugin } from "file:///chemin/absolu/vers/opencode-eyes/dis
 Puis `npm install && npm run build` dans ce dépôt. OpenCode charge automatiquement tout fichier
 `.js`/`.ts` placé dans `~/.config/opencode/plugins/` au démarrage — aucune modification de config
 nécessaire.
+
+## Essayez-le en 30 secondes
+
+1. Installez le plugin, redémarrez OpenCode.
+2. Gardez votre modèle préféré par défaut — même un modèle texte pas cher.
+3. Collez une capture d'écran dans une session et posez une question dessus.
+
+Si votre modèle par défaut ne voit pas, vous obtenez la réponse d'un modèle avec vision au lieu
+d'une erreur. C'est toute la démo.
 
 ## Configuration
 
@@ -69,6 +118,33 @@ export const VisionRouterPlugin = createVisionRouter({
 });
 ```
 
+## Comment ça marche
+
+1. À chaque message entrant, le plugin vérifie les pièces jointes à la recherche d'une image (`mime`
+   commençant par `image/`).
+2. S'il en trouve une, il marque la session comme « vision en attente ».
+3. Si OpenCode signale une `session.error` pour cette session, le plugin cherche parmi vos
+   fournisseurs **connectés** tous les modèles capables d'accepter des images, les trie par coût
+   d'entrée, et renvoie le même message via `client.session.prompt()` sur le modèle suivant de la
+   liste.
+4. Il s'arrête quand la chaîne est épuisée ou après `maxAttempts`.
+
+La capacité vision est détectée depuis les données live des fournisseurs (`attachment: true`,
+`modalities.input` contenant `"image"`, ou `capabilities.input.image` en mode hérité). Rien n'est
+codé en dur : la chaîne reflète toujours les fournisseurs réellement configurés et authentifiés
+dans OpenCode.
+
+## Notes de comportement
+
+- Si un renvoi échoue lui-même (fournisseur indisponible, requête invalide), le plugin arrête de
+  router cette session plutôt que de réessayer à l'aveugle.
+- Les fournisseurs listés dans `preferProviders` passent toujours en premier dans la chaîne, du
+  moins cher au plus cher dans le groupe. Pratique pour les offres gratuites (ex. Groq) : les
+  modèles gratuits sont essayés avant tout repli payant.
+- Les `session.error` concurrentes pour la même session sont dédupliquées.
+- La limite `maxAttempts` s'applique par message avec image ; un nouveau message avec image
+  réarme l'état « en attente ».
+
 ## Développement
 
 ```sh
@@ -89,17 +165,6 @@ OPENCODE_URL=http://127.0.0.1:10999 node scripts/e2e.mjs
 Le script génère un PNG d'exemple, l'envoie dans une session fraîche, attend la réponse de
 l'assistant et affiche quel modèle l'a traitée — vous devriez voir un modèle avec vision si votre
 modèle configuré ne voit pas les images.
-
-## Notes de comportement
-
-- Si un renvoi échoue lui-même (fournisseur indisponible, requête invalide), le plugin arrête de
-  router cette session plutôt que de réessayer à l'aveugle.
-- Les fournisseurs listés dans `preferProviders` passent toujours en premier dans la chaîne, du
-  moins cher au plus cher dans le groupe. Pratique pour les offres gratuites (ex. Groq) : les
-  modèles gratuits sont essayés avant tout repli payant.
-- Les `session.error` concurrentes pour la même session sont dédupliquées.
-- La limite `maxAttempts` s'applique par message avec image ; un nouveau message avec image
-  réarme l'état « en attente ».
 
 ## Licence
 
