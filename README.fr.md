@@ -54,9 +54,9 @@ périmée. opencode-eyes découvre vos modèles en direct — rien de codé en d
 - **Fonctionne avec n'importe quel fournisseur** — OpenAI, Anthropic, Groq, Google, modèles
   locaux. La chaîne est construite à partir de la liste *live* des fournisseurs de votre instance
   OpenCode : elle reflète toujours ce que vous avez réellement connecté et authentifié.
-- **Les offres gratuites d'abord.** Ajoutez `preferProviders: ["groq"]` et les modèles gratuits
-  sont essayés avant tout repli payant. Définissez `maxCost` pour ne jamais dépasser un budget.
-  Votre portefeuille décide.
+- **Groq d'abord par défaut.** Les modèles vision gratuits de Groq sont essayés avant tout repli
+  payant, dès l'installation. Définissez `maxCost` pour ne jamais dépasser un budget. Votre
+  portefeuille décide.
 - **Sûr en cas de panne.** Si un renvoi échoue lui-même (fournisseur down, requête invalide), le
   plugin arrête de router cette session au lieu de marteler à l'aveugle. Les erreurs concurrentes
   sont dédupliquées. Ni tempête d'erreurs, ni boucle infinie.
@@ -110,7 +110,7 @@ import { createVisionRouter } from "opencode-eyes";
 export const VisionRouterPlugin = createVisionRouter({
   maxAttempts: 3,               // max de renvois de repli par image (défaut 4)
   maxCost: 5,                   // ignore les modèles dont le coût d'entrée dépasse ce montant (défaut : sans limite)
-  preferProviders: ["groq"],    // route les modèles de ces fournisseurs en premier, ordre de coût conservé (défaut : [])
+  preferProviders: ["groq"],    // route les modèles de ces fournisseurs en premier, ordre de coût conservé (défaut : ["groq"] — passez [] pour désactiver)
   excludeProviders: ["local"],  // ne jamais router vers ces fournisseurs (défaut : [])
   excludeModels: ["openai/gpt-4o", "claude-sonnet"], // id seul ou "providerID/modelID" (défaut : [])
   cacheMs: 300_000,             // durée de mise en cache de la chaîne de modèles (défaut 5 min)
@@ -139,8 +139,8 @@ dans OpenCode.
 - Si un renvoi échoue lui-même (fournisseur indisponible, requête invalide), le plugin arrête de
   router cette session plutôt que de réessayer à l'aveugle.
 - Les fournisseurs listés dans `preferProviders` passent toujours en premier dans la chaîne, du
-  moins cher au plus cher dans le groupe. Pratique pour les offres gratuites (ex. Groq) : les
-  modèles gratuits sont essayés avant tout repli payant.
+  moins cher au plus cher dans le groupe. Groq est préféré par défaut pour que ses modèles gratuits
+  soient essayés avant tout repli payant.
 - Les `session.error` concurrentes pour la même session sont dédupliquées.
 - La limite `maxAttempts` s'applique par message avec image ; un nouveau message avec image
   réarme l'état « en attente ».

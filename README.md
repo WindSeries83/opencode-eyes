@@ -52,8 +52,8 @@ live — nothing hardcoded, nothing to maintain.
 - **Works with any provider** — OpenAI, Anthropic, Groq, Google, local models. The chain is
   built from the *live* provider list of your OpenCode instance, so it always matches what you
   actually have connected and authenticated.
-- **Free tiers first.** Add `preferProviders: ["groq"]` and free models are tried before any
-  paid fallback. Set `maxCost` to never exceed a budget. Your wallet decides.
+- **Groq first by default.** Groq's free vision models are tried before any paid fallback, out of
+  the box. Set `maxCost` to never exceed a budget. Your wallet decides.
 - **Fail-safe.** If a resend itself fails (provider down, bad request), it stops routing that
   session instead of hammering blindly. Concurrent errors are deduped. No error storms, no loops.
 - **Tiny.** 18 kB on disk, one dependency. Nothing to maintain, nothing to audit twice.
@@ -105,7 +105,7 @@ import { createVisionRouter } from "opencode-eyes";
 export const VisionRouterPlugin = createVisionRouter({
   maxAttempts: 3,               // max fallback resends per image (default 4)
   maxCost: 5,                   // skip models whose input cost exceeds this (default: no cap)
-  preferProviders: ["groq"],    // route these providers' models first, cost order preserved inside (default: [])
+  preferProviders: ["groq"],    // route these providers' models first, cost order preserved inside (default: ["groq"] — pass [] to disable)
   excludeProviders: ["local"],  // never route to these providers (default: [])
   excludeModels: ["openai/gpt-4o", "claude-sonnet"], // bare id or "providerID/modelID" (default: [])
   cacheMs: 300_000,             // how long the model chain is cached (default 5 min)
@@ -132,7 +132,7 @@ always reflects whatever providers you actually have configured and authenticate
 - If a resend itself fails (provider down, invalid request), the plugin stops routing that session
   rather than retrying blindly.
 - Providers listed in `preferProviders` always come first in the chain, cheapest within the group
-  first. Useful for free tiers (e.g. Groq): free models are tried before any paid fallback.
+  first. Groq is preferred by default so its free models are tried before any paid fallback.
 - Concurrent `session.error` events for the same session are deduped.
 - The `maxAttempts` cap applies per image message; a new image message re-arms the pending state.
 

@@ -35,7 +35,7 @@ export function normalizeOptions(raw: VisionRouterOptions = {}): NormalizedOptio
   return {
     maxAttempts: Math.max(1, Math.floor(raw.maxAttempts ?? DEFAULT_MAX_ATTEMPTS)),
     maxCost: raw.maxCost === undefined ? undefined : Math.max(0, raw.maxCost),
-    preferProviders: (raw.preferProviders ?? []).filter((p): p is string => typeof p === "string"),
+    preferProviders: (raw.preferProviders ?? ["groq"]).filter((p): p is string => typeof p === "string"),
     excludeProviders: (raw.excludeProviders ?? []).filter((p): p is string => typeof p === "string"),
     excludeModels: (raw.excludeModels ?? []).filter((m): m is string => typeof m === "string"),
     cacheMs: Math.max(0, Math.floor(raw.cacheMs ?? DEFAULT_CACHE_MS)),

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Hooks, PluginInput } from "@opencode-ai/plugin";
 import { createVisionRouter, normalizeOptions, type VisionRouterOptions } from "../src/index.js";
+import type { ProviderListItem } from "../src/vision.js";
 import { connectedProviders, providerAll } from "./fixtures.js";
 
 type ChatMessageInput = Parameters<NonNullable<Hooks["chat.message"]>>[0];
@@ -8,8 +9,27 @@ type ChatMessageOutput = Parameters<NonNullable<Hooks["chat.message"]>>[1];
 type OpenCodeEvent = Parameters<NonNullable<Hooks["event"]>>[0]["event"];
 type PromptArgs = Parameters<PluginInput["client"]["session"]["prompt"]>[0];
 
-async function boot(options: VisionRouterOptions = {}) {
-  const list = vi.fn(async () => ({ data: { all: providerAll, connected: connectedProviders } }));
+const groqProvider: ProviderListItem = {
+  id: "groq",
+  models: {
+    "llama-3.2-90b-vision-preview": {
+      id: "llama-3.2-90b-vision-preview",
+      attachment: true,
+      cost: { input: 0 },
+    },
+    "llama-3.2-11b-vision-preview": {
+      id: "llama-3.2-11b-vision-preview",
+      attachment: true,
+      cost: { input: 0 },
+    },
+  },
+};
+
+async function boot(options: VisionRouterOptions = {}, extraProviders: ProviderListItem[] = []) {
+  const all = [...providerAll, ...extraProviders];
+  const list = vi.fn(async () => ({
+    data: { all, connected: [...connectedProviders, ...extraProviders.map((p) => p.id)] },
+  }));
   const prompt = vi.fn(async (args: PromptArgs) => ({ info: { id: "m1" }, parts: [] }));
   const client = {
     provider: { list },
@@ -63,7 +83,7 @@ describe("normalizeOptions", () => {
     expect(normalizeOptions()).toEqual({
       maxAttempts: 4,
       maxCost: undefined,
-      preferProviders: [],
+      preferProviders: ["groq"],
       excludeProviders: [],
       excludeModels: [],
       cacheMs: 300_000,
@@ -105,6 +125,17 @@ describe("VisionRouterPlugin", () => {
     expect(call.body!.model).toEqual({ providerID: "local", modelID: "legacy-vision" });
     expect(call.body!.agent).toBe("build");
     expect(call.body!.parts).toHaveLength(2);
+  });
+
+  it("tries groq first by default when it is connected", async () => {
+    const { hooks, prompt } = await boot({}, [groqProvider]);
+    await sendImage(hooks, "s1");
+    await emitError(hooks, "s1");
+    await emitError(hooks, "s1");
+
+    const models = prompt.mock.calls.map(([call]) => call.body!.model);
+    expect(models[0]).toEqual({ providerID: "groq", modelID: "llama-3.2-90b-vision-preview" });
+    expect(models[1]).toEqual({ providerID: "groq", modelID: "llama-3.2-11b-vision-preview" });
   });
 
   it("does not resend text-only messages", async () => {
