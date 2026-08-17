@@ -4,7 +4,7 @@
   "author": "WindSeries69",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/WindSeries69/opencode-eyes.git"
+    "url": "git+https://github.com/WindSeries83/opencode-eyes.git"
   },
   "description": "Automatic, cost-tiered vision model fallback plugin for OpenCode — when an agent gets an image, it's automatically routed to a model that can actually see it.",
   "type": "module",
