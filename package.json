@@ -1,0 +1,56 @@
+{
+  "name": "opencode-eyes",
+  "version": "0.1.0",
+  "author": "WindSeries69",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WindSeries69/opencode-eyes.git"
+  },
+  "description": "Automatic, cost-tiered vision model fallback plugin for OpenCode — when an agent gets an image, it's automatically routed to a model that can actually see it.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "prepublishOnly": "npm test && npm run typecheck && npm run build"
+  },
+  "keywords": [
+    "opencode",
+    "plugin",
+    "vision",
+    "image",
+    "router",
+    "fallback",
+    "llm"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.18.18"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2",
+    "vitest": "^3.2.4"
+  }
+}
